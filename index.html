@@ -308,12 +308,14 @@
       appBtn.addEventListener('click', startQuestions);
       subjects.appendChild(appBtn);
 
-      ['ホームページ', 'ロゴ・デザイン', '看板・印刷物'].forEach(function (name, idx) {
+      // 全8種（アプリのみ活性・他7種は準備中）。質問セットが揃った種目から順に活性化する
+      [['🌐', 'ホームページ'], ['📇', '名刺'], ['🏷️', 'ステッカー'], ['📄', 'チラシ'],
+       ['🔖', 'ゴム印'], ['🪧', '看板'], ['👕', 'Tシャツプリント']].forEach(function (pair) {
         var b = document.createElement('button');
         b.className = 'subject'; b.type = 'button'; b.disabled = true;
-        b.appendChild(el('span', 'subject__emoji', ['🌐', '🎨', '🪧'][idx]));
+        b.appendChild(el('span', 'subject__emoji', pair[0]));
         var bd = el('div', 'subject__body');
-        bd.appendChild(el('div', 'subject__name', name));
+        bd.appendChild(el('div', 'subject__name', pair[1]));
         bd.appendChild(el('div', 'subject__desc', 'エンジン共通・質問を準備中'));
         b.appendChild(bd);
         b.appendChild(el('span', 'subject__soon', '準備中'));
