@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- 社内向けの対面ツール。検索インデックス不要のため noindex（テツオ監査項目8） -->
+<meta name="robots" content="noindex, nofollow" />
+<meta name="referrer" content="no-referrer" />
+<title>GrooBeat ヒアリング｜アプリ制作</title>
+<style>
+  /* ===== GrooBeat ブランド（稼働アプリ準拠：朱 #c0392b ＋ クリーム #fff8f0）===== */
+  :root {
+    --bg: #fff8f0;
+    --ink: #2b2724;
+    --muted: #8a8178;
+    --card: #ffffff;
+    --line: #ece3d8;
+    --primary: #c0392b;
+    --primary-deep: #9c2f22;
+    --gold: #e0a94a;
+    --gold-soft: #fbeecf;
+    --shadow: 0 8px 28px rgba(60, 40, 20, .12);
+    --radius: 18px;
+    --tap: 56px;
+    font-synthesis-weight: none;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+    /* うっすらリズムのある背景（GrooBeat=Groove+Beat のニュアンス。静かに） */
+    background-image:
+      radial-gradient(circle at 100% -10%, rgba(224,169,74,.10), transparent 40%),
+      radial-gradient(circle at -10% 110%, rgba(192,57,43,.06), transparent 42%);
+    background-attachment: fixed;
+  }
+  .wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    padding: max(env(safe-area-inset-top), 12px) 18px calc(env(safe-area-inset-bottom) + 18px);
+  }
+
+  /* ===== 共通ヘッダー ===== */
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 2px 14px;
+  }
+  .brand__mark {
+    font-weight: 800; letter-spacing: .02em;
+    font-size: 20px; color: var(--primary);
+  }
+  .brand__mark b { color: var(--ink); }
+  .brand__beat { display: inline-flex; gap: 3px; align-items: flex-end; height: 18px; }
+  .brand__beat i {
+    width: 3px; background: var(--gold); border-radius: 2px; display: block;
+    animation: eq 1.1s ease-in-out infinite;
+  }
+  .brand__beat i:nth-child(1){ height: 8px;  animation-delay: 0s; }
+  .brand__beat i:nth-child(2){ height: 16px; animation-delay: .18s; }
+  .brand__beat i:nth-child(3){ height: 11px; animation-delay: .36s; }
+  @keyframes eq { 0%,100%{ transform: scaleY(.5); } 50%{ transform: scaleY(1); } }
+
+  /* ===== ボタン共通 ===== */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: var(--tap); padding: 14px 20px;
+    border: none; border-radius: 14px; cursor: pointer;
+    font: inherit; font-weight: 700; font-size: 16px;
+    transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn:active { transform: translateY(1px) scale(.99); }
+  .btn--primary { background: var(--primary); color: #fff; box-shadow: 0 6px 16px rgba(192,57,43,.28); }
+  .btn--primary:hover { background: var(--primary-deep); }
+  .btn--ghost { background: #fff; color: var(--primary); border: 1.5px solid var(--primary); }
+  .btn--sub { background: #f1e9dd; color: var(--ink); }
+  .btn--block { width: 100%; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .btn:focus-visible, .card:focus-visible, .opt:focus-visible {
+    outline: 3px solid var(--gold); outline-offset: 2px;
+  }
+
+  /* ===== 入口画面 ===== */
+  .intro { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 22px; padding: 8px 0 24px; }
+  .intro__eyebrow { color: var(--primary); font-weight: 800; letter-spacing: .14em; font-size: 12px; }
+  .intro__h {
+    font-size: clamp(28px, 8vw, 40px); font-weight: 800; line-height: 1.25; letter-spacing: -.01em;
+  }
+  .intro__h em { font-style: normal; color: var(--primary); }
+  .intro__lead { color: var(--muted); font-size: 15px; max-width: 42ch; }
+  .subjects { display: grid; gap: 12px; margin-top: 6px; }
+  .subject {
+    display: flex; align-items: center; gap: 14px; text-align: left;
+    background: var(--card); border: 1.5px solid var(--line); border-radius: var(--radius);
+    padding: 18px; min-height: var(--tap); cursor: pointer; font: inherit;
+    box-shadow: var(--shadow); transition: transform .12s ease, border-color .12s ease;
+  }
+  .subject:hover { transform: translateY(-2px); border-color: var(--gold); }
+  .subject:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; transform: none; }
+  .subject__emoji { font-size: 30px; line-height: 1; }
+  .subject__body { flex: 1; }
+  .subject__name { font-weight: 800; font-size: 17px; }
+  .subject__desc { color: var(--muted); font-size: 13px; }
+  .subject__soon { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; }
+  .intro__note { color: var(--muted); font-size: 12px; text-align: center; }
+
+  /* ===== 質問画面 ===== */
+  .q { flex: 1; display: flex; flex-direction: column; }
+  .qbar { display: flex; align-items: center; gap: 12px; padding: 6px 0 14px; }
+  .qbar__back {
+    background: none; border: none; color: var(--muted); font: inherit; font-size: 14px;
+    cursor: pointer; padding: 8px; margin-left: -8px; min-height: 44px;
+  }
+  .qbar__back:disabled { opacity: 0; pointer-events: none; }
+  .progress { flex: 1; }
+  .progress__track { height: 8px; background: #efe6d9; border-radius: 999px; overflow: hidden; }
+  .progress__fill { height: 100%; background: linear-gradient(90deg, var(--gold), var(--primary)); border-radius: 999px; transition: width .35s cubic-bezier(.2,.8,.2,1); }
+  .progress__label { font-size: 12px; color: var(--muted); font-weight: 700; margin-top: 6px; letter-spacing: .04em; }
+  .q__eyebrow { color: var(--primary); font-weight: 800; letter-spacing: .12em; font-size: 12px; margin-top: 6px; }
+  .q__title { font-size: clamp(21px, 5.5vw, 26px); font-weight: 800; line-height: 1.4; margin: 6px 0 4px; }
+  .q__note { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+  .opts { display: grid; gap: 11px; margin: 14px 0 8px; }
+  .opt {
+    display: flex; align-items: center; gap: 14px; text-align: left;
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 15px;
+    padding: 15px 16px; min-height: var(--tap); cursor: pointer; font: inherit;
+    transition: transform .1s ease, border-color .12s ease, background .12s ease, box-shadow .12s ease;
+  }
+  .opt:hover { border-color: var(--gold); }
+  .opt:active { transform: scale(.99); }
+  .opt__emoji { font-size: 26px; line-height: 1; flex-shrink: 0; }
+  .opt__label { flex: 1; font-size: 15.5px; font-weight: 600; }
+  .opt__check {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line);
+    flex-shrink: 0; display: grid; place-items: center; color: #fff; font-size: 14px;
+  }
+  .opt[aria-pressed="true"], .opt.is-picked {
+    border-color: var(--primary); background: #fff6f4; box-shadow: 0 4px 14px rgba(192,57,43,.14);
+  }
+  .opt[aria-pressed="true"] .opt__check, .opt.is-picked .opt__check {
+    background: var(--primary); border-color: var(--primary);
+  }
+  .quote-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 700; color: var(--primary-deep);
+    background: var(--gold-soft); border: 1px solid #edca9c;
+    border-radius: 999px; padding: 2px 8px; margin-left: 6px; white-space: nowrap;
+  }
+
+  /* 複数選択のときの下部バー */
+  .multibar { position: sticky; bottom: 0; padding-top: 10px; margin-top: auto;
+    background: linear-gradient(to top, var(--bg) 72%, transparent); }
+  .multibar__hint { font-size: 13px; color: var(--muted); margin-bottom: 8px; min-height: 20px; }
+
+  /* 選択直後フィードバック（単一選択） */
+  .feedback {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; align-items: center; justify-content: center; padding: 28px;
+    background: rgba(43,39,36,.55); backdrop-filter: blur(3px);
+    opacity: 0; pointer-events: none; transition: opacity .28s ease;
+  }
+  .feedback.is-on { opacity: 1; pointer-events: auto; }
+  .feedback__card {
+    background: var(--card); border-radius: 22px; padding: 26px 24px; max-width: 400px; width: 100%;
+    box-shadow: var(--shadow); text-align: center; transform: translateY(10px) scale(.98);
+    transition: transform .32s cubic-bezier(.2,.9,.3,1);
+  }
+  .feedback.is-on .feedback__card { transform: none; }
+  .feedback__emoji { font-size: 40px; }
+  .feedback__text { font-size: 17px; font-weight: 700; margin: 12px 0 16px; line-height: 1.6; }
+  .feedback__tap { font-size: 12px; color: var(--muted); }
+
+  /* ===== 最終画面（コンセプト）===== */
+  .result { flex: 1; display: flex; flex-direction: column; gap: 18px; padding-bottom: 8px; }
+  .result__eyebrow { color: var(--primary); font-weight: 800; letter-spacing: .12em; font-size: 12px; }
+  .result__h { font-size: clamp(24px, 6.5vw, 32px); font-weight: 800; line-height: 1.3; }
+  .concept {
+    background: var(--card); border: 1.5px solid var(--line); border-left: 5px solid var(--primary);
+    border-radius: var(--radius); padding: 22px 20px; box-shadow: var(--shadow);
+    font-size: 16.5px; line-height: 1.95;
+  }
+  .concept p { margin: 0 0 14px; opacity: 0; transform: translateY(8px); animation: rise .5s ease forwards; }
+  .concept p:last-child { margin-bottom: 0; }
+  .concept p.is-avoid { color: var(--primary-deep); font-weight: 700; }
+  .concept p.is-scope { border-top: 1px dashed var(--line); padding-top: 14px; font-weight: 700; }
+  @keyframes rise { to { opacity: 1; transform: none; } }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .actions .btn--block { grid-column: 1 / -1; }
+  .copied { font-size: 13px; color: #1e7e34; font-weight: 700; text-align: center; min-height: 20px; }
+
+  /* 素材コーナー */
+  .materials { background: var(--gold-soft); border: 1px solid #f0dcae; border-radius: var(--radius); padding: 20px; }
+  .materials__h { font-weight: 800; font-size: 16px; }
+  .materials__lead { color: #7a6a48; font-size: 13.5px; margin: 4px 0 14px; }
+  .checklist { display: grid; gap: 10px; margin-bottom: 16px; }
+  .checkitem { display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 12px; padding: 12px 14px; }
+  .checkitem__emoji { font-size: 22px; }
+  .checkitem__name { font-weight: 700; font-size: 14.5px; }
+  .checkitem__note { color: var(--muted); font-size: 12px; }
+  .materials__note { color: #7a6a48; font-size: 12px; margin-top: 12px; text-align: center; }
+
+  /* ===== 完成イメージ 簡易プレビュー ===== */
+  .preview { margin-top: 2px; }
+  .preview__eyebrow { color: var(--primary); font-weight: 800; letter-spacing: .12em; font-size: 12px; }
+  .preview__h { font-size: 18px; font-weight: 800; margin: 4px 0 2px; }
+  .preview__lead { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+  .phone {
+    width: 100%; max-width: 320px; margin: 0 auto;
+    border: 10px solid #23262c; border-radius: 38px; overflow: hidden;
+    box-shadow: 0 20px 52px rgba(60,40,20,.28); background: #000;
+  }
+  .phone__screen { min-height: 560px; position: relative; overflow: hidden; }
+  .preview__note {
+    max-width: 340px; margin: 14px auto 0; color: var(--muted);
+    font-size: 12px; line-height: 1.75; text-align: center;
+  }
+  .preview__note b { color: var(--primary-deep); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+    .concept p { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap" id="app" aria-live="polite"></div>
+  <div class="feedback" id="feedback" role="dialog" aria-live="assertive">
+    <div class="feedback__card">
+      <div class="feedback__emoji" id="fbEmoji">✨</div>
+      <div class="feedback__text" id="fbText"></div>
+      <div class="feedback__tap">タップで次へ</div>
+    </div>
+  </div>
+
+  <!-- 設定値と質問セットは外部ファイルで分離（横展開＝差し替えのため）。外部CDN依存はゼロ -->
+  <script src="config.js"></script>
+  <script src="questions.app.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var CFG = window.HEARING_CONFIG || {};
+    var SET = window.HEARING_SET || { meta: {}, questions: [], buildConcept: function () { return ''; } };
+    var QS = SET.questions || [];
+
+    var app = document.getElementById('app');
+    var fb = document.getElementById('feedback');
+    var fbText = document.getElementById('fbText');
+    var fbEmoji = document.getElementById('fbEmoji');
+
+    var state = { screen: 'intro', i: 0, answers: {}, temp: [] };
+    var fbTimer = null;
+
+    // ---- 小さなDOMヘルパ（innerHTML を使わず textContent で XSS を無効化）----
+    function el(tag, cls, text) {
+      var n = document.createElement(tag);
+      if (cls) n.className = cls;
+      if (text != null) n.textContent = text;
+      return n;
+    }
+    function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+    function header() {
+      var b = el('div', 'brand');
+      var mark = el('div', 'brand__mark');
+      var strong = document.createElement('b'); strong.textContent = 'Groo';
+      mark.appendChild(strong); mark.appendChild(document.createTextNode('Beat'));
+      var beat = el('div', 'brand__beat');
+      beat.appendChild(el('i')); beat.appendChild(el('i')); beat.appendChild(el('i'));
+      b.appendChild(mark); b.appendChild(beat);
+      return b;
+    }
+    function roundLabel(round) {
+      // "R3.5 避けたいもの" → "避けたいもの"（顧客に記号は不要）
+      return String(round || '').replace(/^R[\d.]+\s*/, '');
+    }
+
+    // ================= 入口 =================
+    function renderIntro() {
+      clear(app);
+      app.appendChild(header());
+      var wrap = el('div', 'intro');
+      wrap.appendChild(el('div', 'intro__eyebrow', '一緒に、つくる前の設計図を'));
+      var h = el('h1', 'intro__h');
+      h.appendChild(document.createTextNode('何のご相談ですか？'));
+      wrap.appendChild(h);
+      wrap.appendChild(el('p', 'intro__lead',
+        '15の質問に答えるだけで、あなたのお店に合う世界観が言葉になります。選ぶだけ・その場でコピーできます。'));
+
+      var subjects = el('div', 'subjects');
+      // 現時点は「アプリ」のみ活性
+      var active = SET.meta || {};
+      var appBtn = document.createElement('button');
+      appBtn.className = 'subject'; appBtn.type = 'button';
+      appBtn.appendChild(el('span', 'subject__emoji', '📱'));
+      var body = el('div', 'subject__body');
+      body.appendChild(el('div', 'subject__name', (active.label || 'アプリ制作')));
+      body.appendChild(el('div', 'subject__desc', 'ポイントカード・スタンプ・クーポンのアプリ'));
+      appBtn.appendChild(body);
+      appBtn.appendChild(el('span', 'subject__soon', '▶ はじめる'));
+      appBtn.querySelector('.subject__soon').style.color = 'var(--primary)';
+      appBtn.querySelector('.subject__soon').style.borderColor = 'var(--primary)';
+      appBtn.addEventListener('click', startQuestions);
+      subjects.appendChild(appBtn);
+
+      ['ホームページ', 'ロゴ・デザイン', '看板・印刷物'].forEach(function (name, idx) {
+        var b = document.createElement('button');
+        b.className = 'subject'; b.type = 'button'; b.disabled = true;
+        b.appendChild(el('span', 'subject__emoji', ['🌐', '🎨', '🪧'][idx]));
+        var bd = el('div', 'subject__body');
+        bd.appendChild(el('div', 'subject__name', name));
+        bd.appendChild(el('div', 'subject__desc', 'エンジン共通・質問を準備中'));
+        b.appendChild(bd);
+        b.appendChild(el('span', 'subject__soon', '準備中'));
+        subjects.appendChild(b);
+      });
+      wrap.appendChild(subjects);
+      wrap.appendChild(el('p', 'intro__note', '回答はこの端末の中だけで完結します（送信・保存はしません）'));
+      app.appendChild(wrap);
+    }
+
+    function startQuestions() {
+      state.screen = 'question'; state.i = 0; state.answers = {}; state.temp = [];
+      renderQuestion();
+    }
+
+    // ================= 質問 =================
+    function renderQuestion() {
+      clear(app);
+      app.appendChild(header());
+      var q = QS[state.i];
+      state.temp = pickedArray(q);
+
+      var qc = el('div', 'q');
+
+      var bar = el('div', 'qbar');
+      var back = document.createElement('button');
+      back.className = 'qbar__back'; back.type = 'button'; back.textContent = '‹ 戻る';
+      back.disabled = state.i === 0;
+      back.addEventListener('click', goBack);
+      bar.appendChild(back);
+      var prog = el('div', 'progress');
+      var track = el('div', 'progress__track');
+      var fill = el('div', 'progress__fill');
+      fill.style.width = ((state.i) / QS.length * 100) + '%';
+      track.appendChild(fill); prog.appendChild(track);
+      prog.appendChild(el('div', 'progress__label', (state.i + 1) + ' / ' + QS.length + ' 問目'));
+      bar.appendChild(prog);
+      qc.appendChild(bar);
+      // アニメで満ちるよう次フレームで最終値へ
+      requestAnimationFrame(function () { fill.style.width = ((state.i + 1) / QS.length * 100) + '%'; });
+
+      qc.appendChild(el('div', 'q__eyebrow', roundLabel(q.round)));
+      qc.appendChild(el('h2', 'q__title', q.title));
+      if (q.note) qc.appendChild(el('p', 'q__note', q.note));
+
+      var opts = el('div', 'opts');
+      q.options.forEach(function (opt, oi) {
+        var b = document.createElement('button');
+        b.className = 'opt'; b.type = 'button';
+        b.appendChild(el('span', 'opt__emoji', opt.emoji || '•'));
+        var lab = el('span', 'opt__label');
+        lab.appendChild(document.createTextNode(opt.label));
+        if (opt.quote) {
+          var badge = el('span', 'quote-badge', '※別途お見積り');
+          lab.appendChild(badge);
+        }
+        b.appendChild(lab);
+        if (q.multi) {
+          var chk = el('span', 'opt__check', '✓');
+          b.appendChild(chk);
+          b.setAttribute('aria-pressed', state.temp.indexOf(oi) >= 0 ? 'true' : 'false');
+          b.addEventListener('click', function () { toggleMulti(q, oi, b, opts); });
+        } else {
+          b.addEventListener('click', function () { chooseSingle(q, opt); });
+        }
+        opts.appendChild(b);
+      });
+      qc.appendChild(opts);
+
+      if (q.multi) {
+        var mb = el('div', 'multibar');
+        var hint = el('div', 'multibar__hint', '');
+        mb.appendChild(hint);
+        var next = document.createElement('button');
+        next.className = 'btn btn--primary btn--block';
+        next.type = 'button';
+        next.textContent = state.i === QS.length - 1 ? 'コンセプトを見る' : '次へ ›';
+        next.addEventListener('click', function () { confirmMulti(q); });
+        mb.appendChild(next);
+        qc.appendChild(mb);
+        updateMultiHint(q, hint, next);
+      }
+      app.appendChild(qc);
+    }
+
+    function pickedArray(q) {
+      var a = state.answers[q.id];
+      if (!q.multi) return [];
+      if (!Array.isArray(a)) return [];
+      return a.map(function (opt) { return q.options.indexOf(opt); }).filter(function (x) { return x >= 0; });
+    }
+
+    function updateMultiHint(q, hint, nextBtn) {
+      var n = state.temp.length;
+      if (n === 0) { hint.textContent = '当てはまるものを選んでください（なければ「特にない」を選択）'; }
+      else {
+        var labels = state.temp.map(function (i) { return q.options[i].label; });
+        hint.textContent = '選択中：' + labels.join('、');
+      }
+      if (nextBtn) nextBtn.disabled = n === 0;
+    }
+
+    function toggleMulti(q, oi, btn, optsWrap) {
+      var opt = q.options[oi];
+      var pos = state.temp.indexOf(oi);
+      if (opt.none) {
+        // 「特にない/おまかせ」は排他：他を全部外して自分だけ
+        state.temp = pos >= 0 ? [] : [oi];
+      } else {
+        if (pos >= 0) state.temp.splice(pos, 1);
+        else {
+          state.temp.push(oi);
+          // none枠が入っていたら外す
+          state.temp = state.temp.filter(function (i) { return !q.options[i].none; });
+        }
+      }
+      // 表示同期
+      Array.prototype.forEach.call(optsWrap.children, function (child, idx) {
+        child.setAttribute('aria-pressed', state.temp.indexOf(idx) >= 0 ? 'true' : 'false');
+      });
+      var mb = optsWrap.parentNode.querySelector('.multibar');
+      if (mb) updateMultiHint(q, mb.querySelector('.multibar__hint'), mb.querySelector('.btn'));
+    }
+
+    function confirmMulti(q) {
+      if (!state.temp.length) return;
+      state.answers[q.id] = state.temp.map(function (i) { return q.options[i]; });
+      advance();
+    }
+
+    function chooseSingle(q, opt) {
+      state.answers[q.id] = opt;
+      showFeedback(opt, function () { advance(); });
+    }
+
+    // ---- 選択直後フィードバック（単一選択）----
+    function showFeedback(opt, done) {
+      if (!opt.feedback) { done(); return; }
+      fbEmoji.textContent = opt.emoji || '✨';
+      fbText.textContent = opt.feedback;
+      fb.classList.add('is-on');
+      var closed = false;
+      function close() {
+        if (closed) return; closed = true;
+        clearTimeout(fbTimer);
+        fb.classList.remove('is-on');
+        fb.removeEventListener('click', close);
+        setTimeout(done, 180);
+      }
+      fb.addEventListener('click', close);
+      fbTimer = setTimeout(close, 1500);
+    }
+
+    function advance() {
+      if (state.i >= QS.length - 1) { renderResult(); return; }
+      state.i++;
+      renderQuestion();
+      window.scrollTo(0, 0);
+    }
+    function goBack() {
+      if (state.i === 0) return;
+      state.i--;
+      renderQuestion();
+      window.scrollTo(0, 0);
+    }
+
+    // ================= 最終画面 =================
+    function renderResult() {
+      state.screen = 'result';
+      clear(app);
+      app.appendChild(header());
+      var r = el('div', 'result');
+      r.appendChild(el('div', 'result__eyebrow', '見えてきました'));
+      r.appendChild(el('h2', 'result__h', 'あなたのアプリのコンセプト'));
+
+      var conceptText = SET.buildConcept(state.answers) || '';
+      var concept = el('div', 'concept');
+      var paras = conceptText.split(/\n\n+/);
+      paras.forEach(function (p, idx) {
+        var pe = el('p', null, p);
+        if (/^避けたいこと/.test(p)) pe.className = 'is-avoid';
+        if (/はやらないと決めました|やらないこと.*決めず/.test(p)) pe.className = 'is-scope';
+        pe.style.animationDelay = (idx * 0.28 + 0.1) + 's';
+        concept.appendChild(pe);
+      });
+      r.appendChild(concept);
+      r.appendChild(buildPreview(state.answers));
+
+      var copied = el('div', 'copied', '');
+      var actions = el('div', 'actions');
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'btn btn--primary'; copyBtn.type = 'button'; copyBtn.textContent = '📋 コピー';
+      copyBtn.addEventListener('click', function () { copyText(conceptText, copied); });
+      var shareBtn = document.createElement('button');
+      shareBtn.className = 'btn btn--ghost'; shareBtn.type = 'button'; shareBtn.textContent = '📤 共有';
+      shareBtn.addEventListener('click', function () { shareText(conceptText, copied); });
+      var restart = document.createElement('button');
+      restart.className = 'btn btn--sub btn--block'; restart.type = 'button'; restart.textContent = '↺ 最初からやり直す';
+      restart.addEventListener('click', function () {
+        if (confirm('回答をリセットして最初からやり直しますか？')) { renderIntro(); window.scrollTo(0, 0); }
+      });
+      actions.appendChild(copyBtn); actions.appendChild(shareBtn); actions.appendChild(restart);
+      r.appendChild(copied); r.appendChild(actions);
+
+      r.appendChild(buildMaterials());
+      app.appendChild(r);
+      window.scrollTo(0, 0);
+    }
+
+    // ---- 完成イメージ 簡易プレビュー（回答をCSS変数・パーツに着せ替え。参考: PreviewQualityDemoV2）----
+    function ss(node, obj) { for (var k in obj) { node.style[k] = obj[k]; } return node; }
+    function pvEl(tag, style, text) { var n = el(tag, null, text); if (style) ss(n, style); return n; }
+
+    function buildPreview(answers) {
+      var COLORS = {
+        bright: { bg:'#FFF7EA', card:'#FFFFFF', primary:'#FF8A3D', deep:'#F06A1D', accent:'#FFC53D', text:'#3A2E22', sub:'#9A8B78', on:'#FFFFFF', border:'rgba(0,0,0,0.07)' },
+        chic:   { bg:'#14161D', card:'#1E222D', primary:'#C9A24B', deep:'#A9852F', accent:'#5B6B8C', text:'#EDE8DA', sub:'#8B8FA0', on:'#14161D', border:'rgba(255,255,255,0.08)' },
+        logo:   { bg:'#FAF4EF', card:'#FFFFFF', primary:'#A62639', deep:'#821B2B', accent:'#E8B04B', text:'#33272A', sub:'#9C8A8D', on:'#FFFFFF', border:'rgba(0,0,0,0.07)' }
+      };
+      var GREET = { fun:'ようこそ！今日も来てくれてありがとう🎉', calm:'いらっしゃいませ。本日もお待ちしておりました', mid:'こんにちは。今日のおすすめをチェック' };
+      function pvv(qid, def) { var a = answers[qid]; return (a && a.pv) ? a.pv : def; }
+      var mood = pvv('Q2','mid'), texture = pvv('Q3','flat'), color = pvv('Q5','logo'), point = pvv('Q13','stamp');
+      var c = COLORS[color] || COLORS.logo;
+      var retro = texture === 'retro', rich = texture === 'rich';
+      var radius = (rich ? 20 : retro ? 6 : 14) + 'px';
+      var cardBorder = retro ? ('2px solid ' + c.text) : ('1px solid ' + c.border);
+      var cardShadow = rich ? (color === 'chic' ? '0 12px 28px rgba(0,0,0,0.5)' : '0 10px 24px rgba(0,0,0,0.14)') : 'none';
+      var headBg = rich ? ('linear-gradient(135deg, ' + c.primary + ' 0%, ' + c.deep + ' 100%)') : c.primary;
+      var fontBody = mood === 'fun' ? "'Hiragino Maru Gothic ProN','Yu Gothic',sans-serif" : "'Hiragino Sans','Yu Gothic',sans-serif";
+      var fontDisplay = (mood === 'calm' || retro) ? "'Hiragino Mincho ProN','Yu Mincho',serif" : fontBody;
+
+      function cardStyle(extra) {
+        var s = { background: c.card, borderRadius: radius, border: cardBorder, boxShadow: cardShadow, padding: '16px' };
+        if (extra) { for (var k in extra) s[k] = extra[k]; }
+        return s;
+      }
+      function secTitle(txt) { return pvEl('div', { fontSize:'13px', fontWeight:'700', fontFamily: fontBody, color: c.text }, txt); }
+      function subText(txt) { return pvEl('div', { fontSize:'10.5px', color: c.sub, marginTop:'2px' }, txt); }
+      function gauge(pct) {
+        var bg = pvEl('div', { height:'8px', borderRadius:'4px', background: color === 'chic' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)', marginTop:'12px', overflow:'hidden' });
+        bg.appendChild(pvEl('div', { height:'100%', width: pct + '%', borderRadius:'4px', background: rich ? ('linear-gradient(90deg, ' + c.primary + ', ' + c.deep + ')') : c.primary }));
+        return bg;
+      }
+      function centerHint(pre, strong, post) {
+        var d = pvEl('div', { fontSize:'11px', color: c.sub, marginTop:'12px', textAlign:'center' });
+        d.appendChild(document.createTextNode(pre));
+        d.appendChild(pvEl('b', { color: c.primary, fontSize:'13px' }, strong));
+        d.appendChild(document.createTextNode(post));
+        return d;
+      }
+      function stampGrid() {
+        var g = pvEl('div', { display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:'10px', marginTop:'14px' });
+        for (var i = 0; i < 10; i++) {
+          if (i < 6) {
+            g.appendChild(pvEl('div', {
+              aspectRatio:'1', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize: retro ? '13px' : '15px', fontWeight:'900',
+              background: retro ? 'transparent' : (rich ? ('radial-gradient(circle at 32% 28%, rgba(255,255,255,0.45) 0%, ' + c.primary + ' 45%, ' + c.deep + ' 100%)') : c.primary),
+              color: retro ? c.primary : c.on,
+              border: retro ? ('2.5px solid ' + c.primary) : 'none',
+              boxShadow: rich ? '0 4px 10px rgba(0,0,0,0.25)' : 'none',
+              transform: retro ? 'rotate(-8deg)' : 'none', fontFamily: retro ? fontDisplay : fontBody
+            }, retro ? '済' : '★'));
+          } else {
+            g.appendChild(pvEl('div', { aspectRatio:'1', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'10px', border:'2px dashed rgba(150,140,130,0.55)', color: c.sub }, String(i + 1)));
+          }
+        }
+        return g;
+      }
+      function rankBadge(small) {
+        return pvEl('span', {
+          display:'inline-flex', alignItems:'center', gap:'6px',
+          padding: small ? '3px 10px' : '6px 14px', borderRadius: retro ? '4px' : '999px',
+          background: retro ? 'transparent' : (rich ? ('linear-gradient(135deg, ' + c.primary + ', ' + c.deep + ')') : c.primary),
+          color: retro ? c.primary : c.on, border: retro ? ('2px solid ' + c.primary) : 'none',
+          fontSize: small ? '10.5px' : '13px', fontWeight:'900', letterSpacing:'0.08em',
+          boxShadow: rich ? '0 4px 10px rgba(0,0,0,0.2)' : 'none', fontFamily: retro ? fontDisplay : fontBody
+        }, (retro ? '◆' : '👑') + ' GOLD' + (small ? '' : ' 会員'));
+      }
+      function loyaltyCard() {
+        var card = pvEl('div', cardStyle());
+        if (point === 'point') {
+          card.appendChild(secTitle('ポイント残高'));
+          card.appendChild(subText('お会計100円ごとに1ポイント貯まります'));
+          var w = pvEl('div', { textAlign:'center', marginTop:'14px' });
+          w.appendChild(pvEl('span', { fontSize:'38px', fontWeight:'900', color: c.primary, fontFamily: fontDisplay }, '1,250'));
+          w.appendChild(pvEl('span', { fontSize:'14px', fontWeight:'700', color: c.sub, marginLeft:'4px' }, 'pt'));
+          card.appendChild(w);
+          card.appendChild(gauge(62));
+          card.appendChild(centerHint('あと ', '750pt', ' で500円クーポンと交換'));
+        } else if (point === 'rank') {
+          card.appendChild(secTitle('会員ランク'));
+          card.appendChild(subText('ご来店・ご利用でランクが上がります'));
+          var w2 = pvEl('div', { textAlign:'center', marginTop:'14px' });
+          w2.appendChild(rankBadge(false));
+          card.appendChild(w2);
+          card.appendChild(gauge(75));
+          card.appendChild(centerHint('あと ', '3回', ' のご来店で PLATINUM に！'));
+        } else if (point === 'combo') {
+          var head = pvEl('div', { display:'flex', justifyContent:'space-between', alignItems:'center' });
+          head.appendChild(secTitle('スタンプカード'));
+          head.appendChild(rankBadge(true));
+          card.appendChild(head);
+          card.appendChild(subText('10個貯まると特典と交換できます'));
+          card.appendChild(stampGrid());
+          card.appendChild(centerHint('あと ', '4個', ' で特典GET！ ／ あと3回で PLATINUM'));
+        } else {
+          card.appendChild(secTitle('スタンプカード'));
+          card.appendChild(subText('10個貯まると特典と交換できます'));
+          card.appendChild(stampGrid());
+          card.appendChild(centerHint('あと ', '4個', ' で特典GET！'));
+        }
+        return card;
+      }
+      function couponCard() {
+        var card = pvEl('div', cardStyle());
+        card.appendChild(secTitle('クーポン'));
+        var row = pvEl('div', { display:'flex', alignItems:'stretch', overflow:'hidden', marginTop:'12px', borderRadius: Math.max(parseInt(radius, 10) - 4, 2) + 'px', border: retro ? ('2px solid ' + c.text) : ('1px solid ' + c.border) });
+        var left = pvEl('div', { background: rich ? ('linear-gradient(160deg, ' + c.primary + ', ' + c.deep + ')') : c.primary, color: c.on, padding:'14px 12px', display:'flex', flexDirection:'column', justifyContent:'center', alignItems:'center', minWidth:'86px' });
+        var off = pvEl('div', { fontSize:'19px', fontWeight:'900', lineHeight:'1' });
+        off.appendChild(document.createTextNode('10'));
+        off.appendChild(pvEl('small', { fontSize:'10px', fontWeight:'700' }, '%OFF'));
+        left.appendChild(off);
+        var right = pvEl('div', { padding:'12px 14px', flex:'1', borderLeft: retro ? ('2px dashed ' + c.text) : '2px dashed rgba(150,140,130,0.45)', background: c.card });
+        right.appendChild(pvEl('div', { fontSize:'12.5px', fontWeight:'700', color: c.text }, '全商品 10%オフ'));
+        right.appendChild(pvEl('div', { fontSize:'10px', color: c.sub, marginTop:'4px' }, '有効期限 2026/08/31'));
+        row.appendChild(left); row.appendChild(right);
+        card.appendChild(row);
+        return card;
+      }
+      function noticeCard() {
+        var card = pvEl('div', cardStyle());
+        card.appendChild(secTitle('お知らせ'));
+        var row = pvEl('div', { display:'flex', gap:'10px', alignItems:'center', marginTop:'10px' });
+        row.appendChild(pvEl('div', { width:'7px', height:'7px', borderRadius:'50%', background: c.accent, flexShrink:'0' }));
+        var body = pvEl('div');
+        body.appendChild(pvEl('div', { fontSize:'11.5px', lineHeight:'1.5', color: c.text }, '夏の新商品が入荷しました'));
+        body.appendChild(pvEl('div', { fontSize:'9.5px', color: c.sub }, '7/15'));
+        row.appendChild(body);
+        card.appendChild(row);
+        return card;
+      }
+
+      var wrap = el('div', 'preview');
+      wrap.appendChild(el('div', 'preview__eyebrow', '完成イメージ'));
+      wrap.appendChild(el('div', 'preview__h', 'あなたのアプリのホーム画面（イメージ）'));
+      wrap.appendChild(el('div', 'preview__lead', '選んだ雰囲気・質感・色・ポイント方式を反映した見本です。店名・数値はダミーです。'));
+
+      var phone = el('div', 'phone');
+      var screen = el('div', 'phone__screen');
+      ss(screen, { background: c.bg, color: c.text, fontFamily: fontBody });
+
+      var header = pvEl('div', { background: headBg, color: c.on, padding:'34px 20px 20px', position:'relative', overflow:'hidden', borderBottom: retro ? ('2px solid ' + c.text) : 'none' });
+      header.appendChild(pvEl('div', { fontSize:'20px', fontWeight:'900', fontFamily: fontDisplay, letterSpacing: retro ? '0.12em' : 'normal' }, 'サンプル店'));
+      header.appendChild(pvEl('div', { fontSize:'12px', marginTop:'5px', opacity:'0.92', fontWeight:'500' }, GREET[mood] || GREET.mid));
+      screen.appendChild(header);
+
+      var body = pvEl('div', { padding:'16px 16px 74px', display:'flex', flexDirection:'column', gap:'14px' });
+      body.appendChild(loyaltyCard());
+      body.appendChild(couponCard());
+      body.appendChild(noticeCard());
+      screen.appendChild(body);
+
+      var nav = pvEl('div', { position:'absolute', left:'0', right:'0', bottom:'0', background: c.card, borderTop: '1px solid ' + c.border, display:'flex', padding:'10px 8px 14px' });
+      [['🏠','ホーム',true], ['🎟️','クーポン',false], ['🏪','店舗',false], ['🔔','お知らせ',false]].forEach(function (it) {
+        var n = pvEl('div', { flex:'1', textAlign:'center', fontSize:'9.5px', color: it[2] ? c.primary : c.sub, fontWeight: it[2] ? '700' : '500' });
+        n.appendChild(pvEl('span', { fontSize:'17px', display:'block', marginBottom:'2px' }, it[0]));
+        n.appendChild(document.createTextNode(it[1]));
+        nav.appendChild(n);
+      });
+      screen.appendChild(nav);
+
+      phone.appendChild(screen);
+      wrap.appendChild(phone);
+
+      var note = el('div', 'preview__note');
+      note.appendChild(document.createTextNode('方向性のイメージです。ここから実物へ精緻化していきます。'));
+      if (point === 'point') {
+        note.appendChild(document.createElement('br'));
+        note.appendChild(el('b', null, '※ポイント型は運用設計込みでご相談します。'));
+      }
+      wrap.appendChild(note);
+      return wrap;
+    }
+
+    // ---- 素材コーナー ----
+    function buildMaterials() {
+      var m = el('div', 'materials');
+      m.appendChild(el('div', 'materials__h', '📎 お手元にあれば、今お送りください'));
+      m.appendChild(el('p', 'materials__lead',
+        '対面ならこの場でLINEでも大丈夫です。事前にお送りいただく場合は下のボタンからどうぞ。'));
+      var list = el('div', 'checklist');
+      (CFG.materialChecklist || []).forEach(function (c) {
+        var it = el('div', 'checkitem');
+        it.appendChild(el('span', 'checkitem__emoji', c.emoji));
+        var bd = el('div');
+        bd.appendChild(el('div', 'checkitem__name', c.label));
+        if (c.note) bd.appendChild(el('div', 'checkitem__note', c.note));
+        it.appendChild(bd);
+        list.appendChild(it);
+      });
+      m.appendChild(list);
+
+      var send = CFG.materialSend || {};
+      var a = document.createElement('a');
+      a.className = 'btn btn--primary btn--block';
+      a.textContent = '📮 素材を送る（メール）';
+      var body = (send.bodyLines || []).join('\n');
+      // 宛先はエンコードしない（@ を %40 にすると一部メールクライアントで宛先が空になる。テツオ監査の機能注記）
+      // 件名・本文はエンコードしてヘッダインジェクションを防ぐ
+      a.href = 'mailto:' + (send.to || '')
+        + '?subject=' + encodeURIComponent(send.subject || '')
+        + '&body=' + encodeURIComponent(body);
+      m.appendChild(a);
+      m.appendChild(el('p', 'materials__note', 'メールアプリが開くだけです。アップロードや自動送信はしません。'));
+      return m;
+    }
+
+    // ---- コピー / 共有 ----
+    function flash(node, msg, ok) {
+      node.textContent = msg;
+      node.style.color = ok === false ? 'var(--primary)' : '#1e7e34';
+      clearTimeout(node._t);
+      node._t = setTimeout(function () { node.textContent = ''; }, 2600);
+    }
+    function copyText(text, node) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(
+          function () { flash(node, '✓ コピーしました。発注書の頭に貼れます', true); },
+          function () { legacyCopy(text, node); }
+        );
+      } else { legacyCopy(text, node); }
+    }
+    function legacyCopy(text, node) {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = text; ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        var ok = document.execCommand('copy');
+        document.body.removeChild(ta);
+        flash(node, ok ? '✓ コピーしました' : 'コピーできませんでした。長押しで選択してください', ok);
+      } catch (e) {
+        flash(node, 'コピーできませんでした。長押しで選択してください', false);
+      }
+    }
+    function shareText(text, node) {
+      if (navigator.share) {
+        navigator.share({ title: 'アプリのコンセプト', text: text }).catch(function () {});
+      } else {
+        copyText(text, node);
+        flash(node, '✓ コピーしました（共有先に貼り付けてください）', true);
+      }
+    }
+
+    renderIntro();
+  })();
+  </script>
+</body>
+</html>
