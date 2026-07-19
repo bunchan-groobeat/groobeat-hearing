@@ -223,6 +223,29 @@
   }
   .preview__note b { color: var(--primary-deep); }
 
+  /* ===== 自由入力・案内・宣言（種目別ヒアリング）===== */
+  .field { margin: 14px 0 8px; }
+  .field input, .field textarea {
+    width: 100%; font: inherit; font-size: 16px; color: var(--ink);
+    background: var(--card); border: 1.5px solid var(--line); border-radius: 14px;
+    padding: 14px 16px; min-height: var(--tap); -webkit-appearance: none;
+  }
+  .field textarea { min-height: 120px; line-height: 1.7; resize: vertical; }
+  .field input:focus, .field textarea:focus {
+    outline: none; border-color: var(--primary); box-shadow: 0 4px 14px rgba(192,57,43,.14);
+  }
+  .notecard {
+    background: var(--gold-soft); border: 1px solid #f0dcae; border-radius: var(--radius);
+    padding: 18px; font-size: 14.5px; line-height: 1.85; color: #7a5a2a; margin: 14px 0 8px;
+  }
+  .confirm { background: var(--card); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 18px; margin: 14px 0 8px; }
+  .confirm__body { font-size: 14px; line-height: 1.85; color: var(--ink); margin-bottom: 8px; }
+  .confirm__body ul { margin: 0; padding-left: 1.3em; }
+  .confirm__body li { margin: 2px 0; }
+  .confirm__check { display: flex; align-items: center; gap: 12px; cursor: pointer; font-weight: 700; padding: 12px 6px; min-height: var(--tap); }
+  .confirm__check input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--primary); }
+  .intake-note { color: var(--muted); font-size: 12.5px; text-align: center; margin: 4px 0 2px; line-height: 1.7; }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; }
     .concept p { opacity: 1; transform: none; }
@@ -242,12 +265,40 @@
   <!-- 設定値と質問セットは外部ファイルで分離（横展開＝差し替えのため）。外部CDN依存はゼロ -->
   <script src="config.js"></script>
   <script src="questions.app.js"></script>
+  <!-- 種目別 質問セット（第1便：本業3種）。揃った種目から入口が活性化する -->
+  <script src="questions.gomuin.js"></script>
+  <script src="questions.inkan.js"></script>
+  <script src="questions.meishi.js"></script>
   <script>
   (function () {
     'use strict';
     var CFG = window.HEARING_CONFIG || {};
-    var SET = window.HEARING_SET || { meta: {}, questions: [], buildConcept: function () { return ''; } };
-    var QS = SET.questions || [];
+    var SETS = window.HEARING_SETS || {};
+    // 後方互換：単体で HEARING_SET だけ読み込まれた場合も動く
+    if (window.HEARING_SET) {
+      var _k = (window.HEARING_SET.meta || {}).key || 'app';
+      if (!SETS[_k]) SETS[_k] = window.HEARING_SET;
+    }
+    var SET = null;   // 選択中の種目セット（loadSetで確定）
+    var QS = [];      // SET.questions
+
+    // 入口に並べる種目（active＝質問セット登録済みのものだけ押せる。順序は指示書§1）
+    var SUBJECTS = [
+      { key: 'meishi', emoji: '📇', name: '名刺', desc: 'ショップカード・カード類' },
+      { key: 'gomuin', emoji: '🔖', name: 'ゴム印', desc: 'のべ板・データー印・アドレス印など' },
+      { key: 'tshirt', emoji: '👕', name: 'Tシャツプリント', desc: 'オリジナルウェア' },
+      { key: 'sticker', emoji: '🏷️', name: 'ステッカー', desc: '屋内外・型抜き' },
+      { key: 'flyer', emoji: '📄', name: 'チラシ', desc: '片面・両面・折り加工' },
+      { key: 'poster', emoji: '🖼️', name: 'ポスター', desc: 'A2以上・掲示用' },
+      { key: 'sign', emoji: '🪧', name: '看板', desc: '現地調査・ご提案' },
+      { key: 'nobori', emoji: '🚩', name: 'のぼり', desc: '定番・スリム' },
+      { key: 'banner', emoji: '🎏', name: '横断幕・タペストリー', desc: '布・ターポリン' },
+      { key: 'noren', emoji: '🏮', name: 'のれん', desc: '間口に合わせて' },
+      { key: 'inkan', emoji: '🖋️', name: '印鑑', desc: '個人印・法人印・3点セット' },
+      { key: 'goods', emoji: '🎁', name: 'グッズ・ノベルティ', desc: '名入れ各種' },
+      { key: 'app', emoji: '📱', name: 'アプリ制作', desc: 'ポイント・スタンプ・クーポン' },
+      { key: 'hp', emoji: '🌐', name: 'ホームページ', desc: '準備中' },
+    ];
 
     var app = document.getElementById('app');
     var fb = document.getElementById('feedback');
@@ -256,6 +307,12 @@
 
     var state = { screen: 'intro', i: 0, answers: {}, temp: [] };
     var fbTimer = null;
+
+    function hasSet(key) { return Object.prototype.hasOwnProperty.call(SETS, key) && SETS[key] && Array.isArray(SETS[key].questions); }
+    function loadSet(key) { SET = hasSet(key) ? SETS[key] : null; QS = (SET && SET.questions) || []; }
+    function isVisible(q) { return !q.showIf || !!q.showIf(state.answers); }
+    function visibleList() { return QS.filter(isVisible); }
+    function isLastVisible(q) { var v = visibleList(); return v.indexOf(q) === v.length - 1; }
 
     // ---- 小さなDOMヘルパ（innerHTML を使わず textContent で XSS を無効化）----
     function el(tag, cls, text) {
@@ -282,6 +339,7 @@
 
     // ================= 入口 =================
     function renderIntro() {
+      state.screen = 'intro';
       clear(app);
       app.appendChild(header());
       var wrap = el('div', 'intro');
@@ -290,35 +348,22 @@
       h.appendChild(document.createTextNode('何のご相談ですか？'));
       wrap.appendChild(h);
       wrap.appendChild(el('p', 'intro__lead',
-        '15の質問に答えるだけで、あなたのお店に合う世界観が言葉になります。選ぶだけ・その場でコピーできます。'));
+        '選ぶだけで、ご希望が整理されて言葉になります。その場でコピーして受付にお渡しできます。'));
 
       var subjects = el('div', 'subjects');
-      // 現時点は「アプリ」のみ活性
-      var active = SET.meta || {};
-      var appBtn = document.createElement('button');
-      appBtn.className = 'subject'; appBtn.type = 'button';
-      appBtn.appendChild(el('span', 'subject__emoji', '📱'));
-      var body = el('div', 'subject__body');
-      body.appendChild(el('div', 'subject__name', (active.label || 'アプリ制作')));
-      body.appendChild(el('div', 'subject__desc', 'ポイントカード・スタンプ・クーポンのアプリ'));
-      appBtn.appendChild(body);
-      appBtn.appendChild(el('span', 'subject__soon', '▶ はじめる'));
-      appBtn.querySelector('.subject__soon').style.color = 'var(--primary)';
-      appBtn.querySelector('.subject__soon').style.borderColor = 'var(--primary)';
-      appBtn.addEventListener('click', startQuestions);
-      subjects.appendChild(appBtn);
-
-      // 全8種（アプリのみ活性・他7種は準備中）。質問セットが揃った種目から順に活性化する
-      [['🌐', 'ホームページ'], ['📇', '名刺'], ['🏷️', 'ステッカー'], ['📄', 'チラシ'],
-       ['🔖', 'ゴム印'], ['🪧', '看板'], ['👕', 'Tシャツプリント']].forEach(function (pair) {
+      SUBJECTS.forEach(function (s) {
+        var active = hasSet(s.key);
         var b = document.createElement('button');
-        b.className = 'subject'; b.type = 'button'; b.disabled = true;
-        b.appendChild(el('span', 'subject__emoji', pair[0]));
+        b.className = 'subject'; b.type = 'button'; b.disabled = !active;
+        b.appendChild(el('span', 'subject__emoji', s.emoji));
         var bd = el('div', 'subject__body');
-        bd.appendChild(el('div', 'subject__name', pair[1]));
-        bd.appendChild(el('div', 'subject__desc', 'エンジン共通・質問を準備中'));
+        bd.appendChild(el('div', 'subject__name', s.name));
+        bd.appendChild(el('div', 'subject__desc', active ? s.desc : 'エンジン共通・質問を準備中'));
         b.appendChild(bd);
-        b.appendChild(el('span', 'subject__soon', '準備中'));
+        var tag = el('span', 'subject__soon', active ? '▶ はじめる' : '準備中');
+        if (active) { tag.style.color = 'var(--primary)'; tag.style.borderColor = 'var(--primary)'; }
+        b.appendChild(tag);
+        if (active) b.addEventListener('click', function () { startSet(s.key); });
         subjects.appendChild(b);
       });
       wrap.appendChild(subjects);
@@ -326,37 +371,52 @@
       app.appendChild(wrap);
     }
 
+    function startSet(key) {
+      loadSet(key);
+      if (!SET) { renderIntro(); return; }
+      startQuestions();
+    }
+
     function startQuestions() {
       state.screen = 'question'; state.i = 0; state.answers = {}; state.temp = [];
+      while (state.i < QS.length && !isVisible(QS[state.i])) state.i++;
       renderQuestion();
     }
 
     // ================= 質問 =================
-    function renderQuestion() {
-      clear(app);
-      app.appendChild(header());
-      var q = QS[state.i];
-      state.temp = pickedArray(q);
-
-      var qc = el('div', 'q');
-
+    // 進捗バー付きヘッダ（全設問タイプ共通）。分岐を反映した「可視設問の中での位置」で数える
+    function qbar(q) {
       var bar = el('div', 'qbar');
       var back = document.createElement('button');
       back.className = 'qbar__back'; back.type = 'button'; back.textContent = '‹ 戻る';
-      back.disabled = state.i === 0;
+      back.disabled = false;
       back.addEventListener('click', goBack);
       bar.appendChild(back);
       var prog = el('div', 'progress');
       var track = el('div', 'progress__track');
       var fill = el('div', 'progress__fill');
-      fill.style.width = ((state.i) / QS.length * 100) + '%';
+      var vis = visibleList();
+      var pos = vis.indexOf(q); if (pos < 0) pos = 0;
+      var total = vis.length || QS.length;
+      fill.style.width = (pos / total * 100) + '%';
       track.appendChild(fill); prog.appendChild(track);
-      prog.appendChild(el('div', 'progress__label', (state.i + 1) + ' / ' + QS.length + ' 問目'));
+      prog.appendChild(el('div', 'progress__label', (pos + 1) + ' / ' + total + ' 問目'));
       bar.appendChild(prog);
-      qc.appendChild(bar);
-      // アニメで満ちるよう次フレームで最終値へ
-      requestAnimationFrame(function () { fill.style.width = ((state.i + 1) / QS.length * 100) + '%'; });
+      requestAnimationFrame(function () { fill.style.width = ((pos + 1) / total * 100) + '%'; });
+      return bar;
+    }
 
+    function renderQuestion() {
+      var q = QS[state.i];
+      if (q.type === 'text') { renderText(q); return; }
+      if (q.type === 'note') { renderNote(q); return; }
+      if (q.type === 'confirm') { renderConfirm(q); return; }
+      clear(app);
+      app.appendChild(header());
+      state.temp = pickedArray(q);
+
+      var qc = el('div', 'q');
+      qc.appendChild(qbar(q));
       qc.appendChild(el('div', 'q__eyebrow', roundLabel(q.round)));
       qc.appendChild(el('h2', 'q__title', q.title));
       if (q.note) qc.appendChild(el('p', 'q__note', q.note));
@@ -392,7 +452,7 @@
         var next = document.createElement('button');
         next.className = 'btn btn--primary btn--block';
         next.type = 'button';
-        next.textContent = state.i === QS.length - 1 ? 'コンセプトを見る' : '次へ ›';
+        next.textContent = isLastVisible(q) ? (SET.showPreview ? 'コンセプトを見る' : '入力内容を確認') : '次へ ›';
         next.addEventListener('click', function () { confirmMulti(q); });
         mb.appendChild(next);
         qc.appendChild(mb);
@@ -470,16 +530,126 @@
     }
 
     function advance() {
-      if (state.i >= QS.length - 1) { renderResult(); return; }
-      state.i++;
+      var j = state.i + 1;
+      while (j < QS.length && !isVisible(QS[j])) j++;   // 分岐で非表示になる設問は飛ばす
+      if (j >= QS.length) { renderResult(); return; }
+      state.i = j;
       renderQuestion();
       window.scrollTo(0, 0);
     }
     function goBack() {
-      if (state.i === 0) return;
-      state.i--;
+      var j = state.i - 1;
+      while (j >= 0 && !isVisible(QS[j])) j--;
+      if (j < 0) { renderIntro(); window.scrollTo(0, 0); return; }   // 先頭から戻る＝種目選択へ
+      state.i = j;
       renderQuestion();
       window.scrollTo(0, 0);
+    }
+
+    // ---- 自由入力（1行 input / 複数行 textarea）----
+    function renderText(q) {
+      clear(app); app.appendChild(header());
+      var qc = el('div', 'q');
+      qc.appendChild(qbar(q));
+      qc.appendChild(el('div', 'q__eyebrow', roundLabel(q.round)));
+      qc.appendChild(el('h2', 'q__title', q.title));
+      if (q.note) qc.appendChild(el('p', 'q__note', q.note));
+      var field = el('div', 'field');
+      var input = document.createElement(q.multiline ? 'textarea' : 'input');
+      if (!q.multiline) input.type = 'text';
+      input.value = state.answers[q.id] || '';
+      if (q.placeholder) input.placeholder = q.placeholder;
+      if (q.inputmode) input.setAttribute('inputmode', q.inputmode);
+      field.appendChild(input);
+      qc.appendChild(field);
+      var mb = el('div', 'multibar');
+      mb.appendChild(el('div', 'multibar__hint', q.optional ? '任意です（空欄でも次へ進めます）' : ''));
+      var next = document.createElement('button');
+      next.className = 'btn btn--primary btn--block'; next.type = 'button';
+      next.textContent = isLastVisible(q) ? '入力内容を確認' : '次へ ›';
+      function sync() { next.disabled = !q.optional && !input.value.trim(); }
+      input.addEventListener('input', sync); sync();
+      next.addEventListener('click', function () { state.answers[q.id] = input.value.trim(); advance(); });
+      mb.appendChild(next);
+      qc.appendChild(mb);
+      app.appendChild(qc);
+      window.scrollTo(0, 0);
+    }
+
+    // ---- 案内（入力なし・アップロードの代替導線など）----
+    function renderNote(q) {
+      clear(app); app.appendChild(header());
+      var qc = el('div', 'q');
+      qc.appendChild(qbar(q));
+      qc.appendChild(el('div', 'q__eyebrow', roundLabel(q.round)));
+      qc.appendChild(el('h2', 'q__title', q.title));
+      var card = el('div', 'notecard');
+      (Array.isArray(q.body) ? q.body : [q.body || '']).forEach(function (line, i) {
+        if (i) card.appendChild(document.createElement('br'));
+        card.appendChild(document.createTextNode(line));
+      });
+      qc.appendChild(card);
+      var mb = el('div', 'multibar');
+      mb.appendChild(el('div', 'multibar__hint', ''));
+      var next = document.createElement('button');
+      next.className = 'btn btn--primary btn--block'; next.type = 'button';
+      next.textContent = isLastVisible(q) ? '入力内容を確認' : '次へ ›';
+      next.addEventListener('click', advance);
+      mb.appendChild(next);
+      qc.appendChild(mb);
+      app.appendChild(qc);
+      window.scrollTo(0, 0);
+    }
+
+    // ---- やらないこと宣言（チェック必須）----
+    function renderConfirm(q) {
+      clear(app); app.appendChild(header());
+      var qc = el('div', 'q');
+      qc.appendChild(qbar(q));
+      qc.appendChild(el('div', 'q__eyebrow', roundLabel(q.round)));
+      qc.appendChild(el('h2', 'q__title', q.title));
+      var box = el('div', 'confirm');
+      var body = el('div', 'confirm__body');
+      var ul = document.createElement('ul');
+      (q.body || []).forEach(function (line) { var li = document.createElement('li'); li.textContent = line; ul.appendChild(li); });
+      body.appendChild(ul);
+      box.appendChild(body);
+      var label = el('label', 'confirm__check');
+      var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!state.answers[q.id];
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(q.checkLabel || '確認しました'));
+      box.appendChild(label);
+      qc.appendChild(box);
+      var mb = el('div', 'multibar');
+      mb.appendChild(el('div', 'multibar__hint', ''));
+      var next = document.createElement('button');
+      next.className = 'btn btn--primary btn--block'; next.type = 'button';
+      next.textContent = isLastVisible(q) ? '入力内容を確認' : '次へ ›';
+      function sync() { next.disabled = !cb.checked; }
+      cb.addEventListener('change', sync); sync();
+      next.addEventListener('click', function () { state.answers[q.id] = cb.checked; advance(); });
+      mb.appendChild(next);
+      qc.appendChild(mb);
+      app.appendChild(qc);
+      window.scrollTo(0, 0);
+    }
+
+    // ---- 受付内容まとめ（種目別の出力＝スタッフがDenpyo-BOTへ貼る）----
+    function buildSummary() {
+      var lines = [];
+      lines.push('【' + ((SET.meta && SET.meta.label) || '受付') + '】ヒアリング内容');
+      lines.push('');
+      QS.forEach(function (q) {
+        if (!isVisible(q) || q.type === 'note' || q.type === 'confirm') return;
+        var a = state.answers[q.id], val = '';
+        if (q.type === 'text') { val = (a || '').trim(); if (!val) return; }
+        else if (q.multi) { if (!Array.isArray(a) || !a.length) return; val = a.map(function (o) { return o.label; }).join('・'); }
+        else { if (!a) return; val = a.label; }
+        lines.push('■ ' + (q.sum || q.title) + '：' + val);
+      });
+      var confirmed = QS.filter(function (q) { return q.type === 'confirm' && isVisible(q) && state.answers[q.id]; });
+      if (confirmed.length) { lines.push(''); lines.push('※「やらないこと・注意事項」を確認済み'); }
+      return lines.join('\n');
     }
 
     // ================= 最終画面 =================
@@ -487,14 +657,40 @@
       state.screen = 'result';
       clear(app);
       app.appendChild(header());
+      if (SET.showPreview) renderConceptResult();
+      else renderIntakeResult();
+      window.scrollTo(0, 0);
+    }
+
+    // 共通アクション（コピー／共有／やり直し）
+    function resultActions(text) {
+      var box = el('div');
+      var copied = el('div', 'copied', '');
+      var actions = el('div', 'actions');
+      var copyBtn = document.createElement('button');
+      copyBtn.className = 'btn btn--primary'; copyBtn.type = 'button'; copyBtn.textContent = '📋 コピー';
+      copyBtn.addEventListener('click', function () { copyText(text, copied); });
+      var shareBtn = document.createElement('button');
+      shareBtn.className = 'btn btn--ghost'; shareBtn.type = 'button'; shareBtn.textContent = '📤 共有';
+      shareBtn.addEventListener('click', function () { shareText(text, copied); });
+      var restart = document.createElement('button');
+      restart.className = 'btn btn--sub btn--block'; restart.type = 'button'; restart.textContent = '↺ 最初からやり直す';
+      restart.addEventListener('click', function () {
+        if (confirm('回答をリセットして最初からやり直しますか？')) { renderIntro(); window.scrollTo(0, 0); }
+      });
+      actions.appendChild(copyBtn); actions.appendChild(shareBtn); actions.appendChild(restart);
+      box.appendChild(copied); box.appendChild(actions);
+      return box;
+    }
+
+    // アプリ版：コンセプト文＋完成イメージプレビュー＋素材コーナー
+    function renderConceptResult() {
       var r = el('div', 'result');
       r.appendChild(el('div', 'result__eyebrow', '見えてきました'));
       r.appendChild(el('h2', 'result__h', 'あなたのアプリのコンセプト'));
-
       var conceptText = SET.buildConcept(state.answers) || '';
       var concept = el('div', 'concept');
-      var paras = conceptText.split(/\n\n+/);
-      paras.forEach(function (p, idx) {
+      conceptText.split(/\n\n+/).forEach(function (p, idx) {
         var pe = el('p', null, p);
         if (/^避けたいこと/.test(p)) pe.className = 'is-avoid';
         if (/はやらないと決めました|やらないこと.*決めず/.test(p)) pe.className = 'is-scope';
@@ -503,26 +699,24 @@
       });
       r.appendChild(concept);
       r.appendChild(buildPreview(state.answers));
-
-      var copied = el('div', 'copied', '');
-      var actions = el('div', 'actions');
-      var copyBtn = document.createElement('button');
-      copyBtn.className = 'btn btn--primary'; copyBtn.type = 'button'; copyBtn.textContent = '📋 コピー';
-      copyBtn.addEventListener('click', function () { copyText(conceptText, copied); });
-      var shareBtn = document.createElement('button');
-      shareBtn.className = 'btn btn--ghost'; shareBtn.type = 'button'; shareBtn.textContent = '📤 共有';
-      shareBtn.addEventListener('click', function () { shareText(conceptText, copied); });
-      var restart = document.createElement('button');
-      restart.className = 'btn btn--sub btn--block'; restart.type = 'button'; restart.textContent = '↺ 最初からやり直す';
-      restart.addEventListener('click', function () {
-        if (confirm('回答をリセットして最初からやり直しますか？')) { renderIntro(); window.scrollTo(0, 0); }
-      });
-      actions.appendChild(copyBtn); actions.appendChild(shareBtn); actions.appendChild(restart);
-      r.appendChild(copied); r.appendChild(actions);
-
+      r.appendChild(resultActions(conceptText));
       r.appendChild(buildMaterials());
       app.appendChild(r);
-      window.scrollTo(0, 0);
+    }
+
+    // 種目別：受付内容まとめ（スタッフがDenpyo-BOTへ貼る）
+    function renderIntakeResult() {
+      var r = el('div', 'result');
+      r.appendChild(el('div', 'result__eyebrow', 'ありがとうございます'));
+      r.appendChild(el('h2', 'result__h', 'ご希望の受付内容'));
+      var text = buildSummary();
+      var concept = el('div', 'concept');
+      text.split(/\n/).forEach(function (line) { concept.appendChild(el('p', null, line || ' ')); });
+      r.appendChild(concept);
+      r.appendChild(el('p', 'intake-note',
+        'この内容を確認してご連絡します（送信＝ご注文確定ではありません）。お見積りは内容をもとに担当がご案内します。'));
+      r.appendChild(resultActions(text));
+      app.appendChild(r);
     }
 
     // ---- 完成イメージ 簡易プレビュー（回答をCSS変数・パーツに着せ替え。参考: PreviewQualityDemoV2）----
@@ -771,7 +965,14 @@
       }
     }
 
-    renderIntro();
+    // ?s=種目キー があればその種目へ直行（店頭タブレット／直リンク用）。無ければ種目選択へ
+    function boot() {
+      var key = '';
+      try { key = new URLSearchParams(location.search).get('s') || ''; } catch (e) { key = ''; }
+      if (key && hasSet(key)) startSet(key);
+      else renderIntro();
+    }
+    boot();
   })();
   </script>
 </body>

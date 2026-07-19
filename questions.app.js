@@ -352,5 +352,9 @@
     meta: { key: 'app', label: 'アプリ制作', title: 'アプリ制作ヒアリング' },
     questions: QUESTIONS,
     buildConcept: buildConcept,
+    showPreview: true,   // アプリ版のみ：コンセプト文＋スマホ完成イメージを出す（種目別は受付内容まとめ）
   };
+  // 複数種目レジストリへ登録（エンジンは ?s=キー で種目を切り替える）
+  window.HEARING_SETS = window.HEARING_SETS || {};
+  window.HEARING_SETS['app'] = window.HEARING_SET;
 })();
