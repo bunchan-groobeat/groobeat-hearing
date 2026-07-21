@@ -140,7 +140,15 @@
   }
   .opt:hover { border-color: var(--gold); }
   .opt:active { transform: scale(.99); }
-  .opt__emoji { font-size: 26px; line-height: 1; flex-shrink: 0; }
+  .opt__num {
+    flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%;
+    display: grid; place-items: center; line-height: 1;
+    background: var(--gold-soft); color: var(--primary-deep);
+    font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums;
+  }
+  .opt[aria-pressed="true"] .opt__num, .opt.is-picked .opt__num {
+    background: var(--primary); color: #fff;
+  }
   .opt__label { flex: 1; font-size: 15.5px; font-weight: 600; }
   .opt__check {
     width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line);
@@ -441,7 +449,7 @@
       q.options.forEach(function (opt, oi) {
         var b = document.createElement('button');
         b.className = 'opt'; b.type = 'button';
-        b.appendChild(el('span', 'opt__emoji', opt.emoji || '•'));
+        b.appendChild(el('span', 'opt__num', String(oi + 1)));
         var lab = el('span', 'opt__label');
         lab.appendChild(document.createTextNode(opt.label));
         if (opt.quote) {
